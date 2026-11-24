@@ -53,7 +53,7 @@ usually needs `sakurai-action-feel` (hit stop, responsiveness), `sakurai-attack-
 
 - Cite episode codes (e.g. `G03`) when you justify a recommendation, so the user can watch the
   exact lesson. Each area skill's `references/episodes.md` lists the title, link, quotes and visuals.
-- When working inside the full `game-design-toolkit` repository with the index built
+- When working inside the full `sakurai-game-design` repository with the index built
   (`scripts/08_build_index.py`), you can query the graph directly:
   `uv run python scripts/query.py search "<term>"` or `... neighbors <technique_id>`.
 - Sakurai often says that rules are not absolute and you should do what fits your game.

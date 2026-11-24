@@ -1,0 +1,45 @@
+# ── Python / tooling ─────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# ── Secrets & local env ─────────────────────────────────────────
+.env
+.env.*
+cookies.txt
+
+# ── OS / IDE ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Raw & intermediate pipeline data (regenerable, large, or copyrighted) ──
+# Keep only what the viewer needs to render nodes: knowledge/graph.json + referenced visuals.
+data/raw_videos/
+data/raw_subs/
+data/visuals_raw/
+data/transcripts/
+data/state.sqlite
+*.mp4
+*.mkv
+*.webm
+*.m4a
+*.wav
+
+# Visual assets: everything ignored by default. The ~1k WebP files actually referenced by
+# knowledge/graph.json are force-added via `uv run python scripts/publish_media.py`.
+data/media/
+
+# Regenerable knowledge artifacts (rebuild with scripts/06–08)
+knowledge/episodes/
+knowledge/techniques.jsonl
+knowledge/visuals.jsonl
+knowledge/edges.jsonl
+knowledge/index.db
+knowledge/index.db-*
+vault/
+skills_eval/

@@ -1,0 +1,123 @@
+{
+  "total_channel_uploads": 300,
+  "excluded_compilations": 39,
+  "unique_episodes": 261,
+  "total_unique_duration_sec": 69195,
+  "total_unique_duration_hrs": 19.22,
+  "by_category": {
+    "A: Work Ethic": 23,
+    "B: Game Essence": 29,
+    "C: Planning & Game Design": 30,
+    "D: Design Specifics": 18,
+    "E: Team Management": 15,
+    "F: Graphics": 20,
+    "G: Animation": 18,
+    "H: Effects": 11,
+    "I: Audio": 14,
+    "J: UI": 15,
+    "K: Programming & Tech": 9,
+    "L: Marketing": 9,
+    "M: Grab Bag": 31,
+    "N: Game Concepts": 12,
+    "S: Special": 4,
+    "News": 3
+  },
+  "playlists": [
+    {
+      "id": "PLgKCjZ2WsVLRv5bq7Ygo7WfBEFK5Kaj_X",
+      "category_code": "S",
+      "category_name": "S: Special",
+      "count": 4
+    },
+    {
+      "id": "PLgKCjZ2WsVLTbEJdN9Rs6FWnOjlIj4Tdt",
+      "category_code": "N",
+      "category_name": "N: Game Concepts",
+      "count": 13
+    },
+    {
+      "id": "PLgKCjZ2WsVLS1xisCnw_DpTg52sy7upu_",
+      "category_code": "M",
+      "category_name": "M: Grab Bag",
+      "count": 31
+    },
+    {
+      "id": "PLgKCjZ2WsVLTwxbJjYoPyXUOik_ZiTxIE",
+      "category_code": "L",
+      "category_name": "L: Marketing",
+      "count": 9
+    },
+    {
+      "id": "PLgKCjZ2WsVLSxoK7u0sYczpOCsKly1fLQ",
+      "category_code": "K",
+      "category_name": "K: Programming & Tech",
+      "count": 9
+    },
+    {
+      "id": "PLgKCjZ2WsVLTVcEHQFioJF263Ip_yoxen",
+      "category_code": "J",
+      "category_name": "J: UI",
+      "count": 15
+    },
+    {
+      "id": "PLgKCjZ2WsVLR75Vl5-HdeHrrACZQydllk",
+      "category_code": "I",
+      "category_name": "I: Audio",
+      "count": 14
+    },
+    {
+      "id": "PLgKCjZ2WsVLS_VcVMrFF6eeiI_ER7c6a2",
+      "category_code": "H",
+      "category_name": "H: Effects",
+      "count": 11
+    },
+    {
+      "id": "PLgKCjZ2WsVLQ3AFFCkbSXKhsvH1Z7WFXn",
+      "category_code": "G",
+      "category_name": "G: Animation",
+      "count": 18
+    },
+    {
+      "id": "PLgKCjZ2WsVLSO4Zq-JuJzGvhTe1QqRSZ5",
+      "category_code": "F",
+      "category_name": "F: Graphics",
+      "count": 20
+    },
+    {
+      "id": "PLgKCjZ2WsVLRwtBHwxMGSIDD1OB4PiMBg",
+      "category_code": "E",
+      "category_name": "E: Team Management",
+      "count": 15
+    },
+    {
+      "id": "PLgKCjZ2WsVLQUWyKv2-ee6ds7uxtFiZeO",
+      "category_code": "D",
+      "category_name": "D: Design Specifics",
+      "count": 18
+    },
+    {
+      "id": "PLgKCjZ2WsVLSmJwGC258l2HhWgf-P877B",
+      "category_code": "C",
+      "category_name": "C: Planning & Game Design",
+      "count": 30
+    },
+    {
+      "id": "PLgKCjZ2WsVLScUWJZ7ppkHGlCUIXEj5Io",
+      "category_code": "B",
+      "category_name": "B: Game Essence",
+      "count": 29
+    },
+    {
+      "id": "PLgKCjZ2WsVLSHTbG4lQadRRtjzjARK69h",
+      "category_code": "A",
+      "category_name": "A: Work Ethic",
+      "count": 23
+    },
+    {
+      "id": "PLgKCjZ2WsVLTSHzYBGiBaz4gmMG67TOoW",
+      "category_code": "NEWS",
+      "category_name": "News",
+      "count": 3
+    }
+  ]
+}

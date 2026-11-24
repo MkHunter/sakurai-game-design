@@ -1,0 +1,180 @@
+version: "1.0"
+description: "Controlled 2-level Game Design & Development taxonomy mapped from Masahiro Sakurai on Creating Games."
+
+major_topics:
+  - id: core_game_design
+    name: "Core Game Design & Essence"
+    color: "#e63946"
+    subtopics:
+      - id: risk_and_reward
+        name: "Risk & Reward"
+      - id: push_and_pull
+        name: "Push & Pull"
+      - id: core_loop_and_fun
+        name: "Core Loop & Fun Essence"
+      - id: difficulty_and_balance
+        name: "Difficulty & Balance"
+      - id: pacing_and_tempo
+        name: "Pacing & Tempo"
+      - id: player_agency_and_choice
+        name: "Player Agency & Choice"
+      - id: replayability_and_progression
+        name: "Replayability & Progression"
+      - id: genre_fundamentals
+        name: "Genre Fundamentals"
+
+  - id: game_feel_and_combat
+    name: "Game Feel, Juice & Combat"
+    color: "#f77f00"
+    subtopics:
+      - id: hitstop_and_impact
+        name: "Hitstop & Impact"
+      - id: timing_and_frame_data
+        name: "Timing & Frame Data"
+      - id: input_responsiveness
+        name: "Input Responsiveness & Buffering"
+      - id: controls_and_handling
+        name: "Controls & Handling"
+      - id: feedback_and_juice
+        name: "Feedback Loops & Juice"
+      - id: combat_kinesthetics
+        name: "Combat Kinesthetics & Spacing"
+
+  - id: animation_and_motion
+    name: "Animation & Motion Craft"
+    color: "#fcbf49"
+    subtopics:
+      - id: key_poses_and_silhouettes
+        name: "Key Poses & Silhouettes"
+      - id: anticipation_and_follow_through
+        name: "Anticipation & Follow-Through"
+      - id: frame_economy
+        name: "Frame Economy & Pacing"
+      - id: transitions_and_blending
+        name: "Transitions & Blending"
+      - id: expressive_animation
+        name: "Expressive & Facial Animation"
+      - id: camera_relative_motion
+        name: "Camera-Relative Motion Readability"
+
+  - id: vfx_and_graphics
+    name: "Visual Effects (VFX) & Graphics"
+    color: "#2a9d8f"
+    subtopics:
+      - id: visual_hierarchy_and_clarity
+        name: "Visual Hierarchy & Clarity"
+      - id: impact_and_action_vfx
+        name: "Impact & Action VFX"
+      - id: lighting_and_color
+        name: "Lighting & Color Contrast"
+      - id: framing_and_composition
+        name: "Framing & Composition"
+      - id: readability_in_chaos
+        name: "Readability in Chaos"
+      - id: art_direction_vs_function
+        name: "Art Direction vs. Function"
+
+  - id: camera_systems
+    name: "Camera Systems"
+    color: "#0096c7"
+    subtopics:
+      - id: camera_framing_and_sightlines
+        name: "Framing & Sightlines"
+      - id: camera_tracking_and_smoothing
+        name: "Tracking & Smoothing"
+      - id: action_and_combat_camera
+        name: "Action & Combat Camera"
+      - id: multi_target_camera
+        name: "Multi-Target Framing"
+      - id: camera_shake_and_angles
+        name: "Camera Shake & Dynamic Angles"
+
+  - id: audio_and_sound
+    name: "Audio & Sound Design"
+    color: "#7209b7"
+    subtopics:
+      - id: impact_and_feedback_audio
+        name: "Impact & Feedback Audio"
+      - id: spatial_and_reverb
+        name: "Spatial Audio & Reverb Weight"
+      - id: mixing_and_priority
+        name: "Mixing & Sound Priority"
+      - id: music_pacing_and_mood
+        name: "Music Pacing & Mood"
+      - id: audio_visual_sync
+        name: "Audio-Visual Synchronization"
+
+  - id: ui_ux_and_onboarding
+    name: "UI, UX & Onboarding"
+    color: "#4361ee"
+    subtopics:
+      - id: menu_flow_and_speed
+        name: "Menu Flow & Navigation Speed"
+      - id: hud_readability
+        name: "HUD Readability & Economy"
+      - id: tutorials_and_affordances
+        name: "Tutorials & Natural Affordances"
+      - id: ui_feedback_states
+        name: "UI Feedback & Transitions"
+      - id: localization_and_accessibility
+        name: "Localization & Accessibility"
+
+  - id: level_design
+    name: "Level Design & Encounter Flow"
+    color: "#52b788"
+    subtopics:
+      - id: space_and_metrics
+        name: "Space & Player Metrics"
+      - id: sightlines_and_guidance
+        name: "Sightlines & Player Guidance"
+      - id: escalation_and_variety
+        name: "Escalation & Encounter Variety"
+      - id: environmental_storytelling
+        name: "Environmental Storytelling"
+      - id: risk_placement
+        name: "Hazard & Risk Placement"
+
+  - id: engineering_and_tech
+    name: "Engineering, Tech & Performance"
+    color: "#4cc9f0"
+    subtopics:
+      - id: framerate_and_stability
+        name: "Frame Rate & Performance Stability"
+      - id: tooling_and_debug
+        name: "Tooling & Debug Views"
+      - id: collision_and_hitboxes
+        name: "Collision & Hitbox Design"
+      - id: optimization_tradeoffs
+        name: "Optimization Tradeoffs"
+      - id: technical_architecture
+        name: "Gameplay Systems Architecture"
+
+  - id: planning_and_prototyping
+    name: "Planning, Prototyping & Specs"
+    color: "#b5179e"
+    subtopics:
+      - id: game_concepts_and_pitching
+        name: "Game Concepts & Pitching"
+      - id: fast_prototyping
+        name: "Fast Prototyping & Validation"
+      - id: spec_writing_and_changes
+        name: "Spec Writing & Managing Changes"
+      - id: scope_control
+        name: "Scope Control & Cutting Features"
+      - id: playtesting_and_iteration
+        name: "Playtesting & Iteration"
+
+  - id: production_and_ethic
+    name: "Production, Team & Craft Ethic"
+    color: "#8d99ae"
+    subtopics:
+      - id: direction_and_communication
+        name: "Direction & Team Communication"
+      - id: decision_making
+        name: "Decision Making & Prioritization"
+      - id: schedule_and_management
+        name: "Schedule & Project Management"
+      - id: player_first_mindset
+        name: "Player-First Craft Mindset"
+      - id: marketing_and_presentation
+        name: "Marketing & Presentation"

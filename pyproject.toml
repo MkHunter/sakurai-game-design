@@ -1,0 +1,44 @@
+[project]
+name = "sakurai-game-design-pipeline"
+version = "0.1.0"
+description = "Data extraction, visual reference indexing, and knowledge graph pipeline for Masahiro Sakurai on Creating Games."
+requires-python = ">=3.11"
+dependencies = [
+    "google-genai>=1.0.0",
+    "imagehash>=4.3.1",
+    "numpy>=1.26.0",
+    "nvidia-cublas-cu12>=12.0.0",
+    "nvidia-cuda-nvrtc-cu12>=12.0.0",
+    "nvidia-cuda-runtime-cu12>=12.0.0",
+    "nvidia-cudnn-cu12>=9.0.0",
+    "nvidia-cufft-cu12>=11.0.0",
+    "nvidia-curand-cu12>=10.0.0",
+    "onnxruntime-gpu>=1.20.0,<1.25.0",
+    "opencv-python-headless>=4.10.0",
+    "pillow>=10.4.0",
+    "pydantic>=2.9.0",
+    "pyyaml>=6.0.2",
+    "rapidocr-onnxruntime>=1.4.0",
+    "rich>=13.9.0",
+    "scenedetect>=0.6.4",
+    "typer>=0.12.5",
+]
+
+[project.optional-dependencies]
+gpu = [
+    "faster-whisper>=1.1.0",
+]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.7.0",
+]
+
+[tool.uv]
+# Prevent CPU-only onnxruntime (transitive dep of rapidocr-onnxruntime) from clobbering onnxruntime-gpu.
+override-dependencies = [
+    "onnxruntime; sys_platform == 'never'",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

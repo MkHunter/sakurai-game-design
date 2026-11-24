@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sakurai Game Design Knowledge Graph</title>
+  <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+  <style>
+    :root {
+      --bg: #0d1017;
+      --panel: #151923;
+      --card: #1b202e;
+      --border: #2a3142;
+      --text: #e8edf7;
+      --muted: #93a0b8;
+      --accent: #4cc9f0;
+      --good: #52b788;
+      --warn: #f77f00;
+      --bad: #e63946;
+      --hit-bg: rgba(252, 191, 73, 0.28);
+      --hit-border: #fcbf49;
+      --hit-active-bg: #fcbf49;
+      --hit-active-text: #0b0e14;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: grid;
+      grid-template-columns: 310px 1fr 450px;
+      grid-template-rows: 54px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      grid-column: 1 / -1;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      gap: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    header h1 { font-size: 15px; margin: 0; font-weight: 650; letter-spacing: 0.2px; }
+    .stats { font-size: 12px; color: var(--muted); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    .stats b { color: var(--text); }
+    aside.controls, aside.inspector {
+      background: var(--panel);
+      overflow-y: auto;
+      padding: 14px;
+    }
+    aside.controls { border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 14px; }
+    aside.inspector { border-left: 1px solid var(--border); padding: 0; display: flex; flex-direction: column; }
+    .inspector-body { padding: 14px 16px 28px; overflow-y: auto; flex: 1; scroll-behavior: smooth; }
+    .canvas-wrap { position: relative; width: 100%; height: 100%; overflow: hidden; }
+    #cy {
+      width: 100%; height: 100%;
+      background: radial-gradient(circle at center, #141927 0%, #0b0e15 100%);
+    }
+
+    /* Floating canvas HUD */
+    .canvas-hud {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(21, 25, 35, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      z-index: 10;
+    }
+    .hud-btn {
+      background: #232a3b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 30px;
+    }
+    .hud-btn:hover { border-color: var(--accent); color: #fff; }
+    .zoom-readout {
+      font-size: 11px;
+      color: var(--muted);
+      min-width: 44px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .canvas-hint {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      background: rgba(21, 25, 35, 0.84);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    /* Left sidebar controls */
+    .group { display: flex; flex-direction: column; gap: 6px; }
+    .group label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--muted); font-weight: 600;
+    }
+    .search-row { position: relative; display: flex; gap: 6px; }
+    input[type="text"], select {
+      width: 100%; background: #0e121b; color: var(--text); border: 1px solid var(--border);
+      border-radius: 7px; padding: 8px 10px; font-size: 13px; outline: none;
+    }
+    input[type="text"]:focus, select:focus { border-color: var(--accent); }
+    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    button {
+      background: #222839; color: var(--text); border: 1px solid var(--border);
+      border-radius: 7px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    button.active { background: rgba(76, 201, 240, 0.16); border-color: var(--accent); color: #fff; }
+
+    /* Search hits quick list */
+    .search-results {
+      max-height: 210px;
+      overflow-y: auto;
+      background: #0e121b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: none;
+    }
+    .search-results.open { display: block; }
+    .sr-header {
+      font-size: 11px; color: var(--muted); padding: 6px 9px;
+      border-bottom: 1px solid var(--border); position: sticky; top: 0; background: #121723;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .sr-item {
+      padding: 7px 9px; font-size: 12px; cursor: pointer;
+      border-bottom: 1px solid rgba(42, 49, 66, 0.55);
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .sr-item:last-child { border-bottom: none; }
+    .sr-item:hover { background: #1d2436; }
+    .sr-item .sr-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .sr-count {
+      font-size: 10px; padding: 1px 6px; border-radius: 999px;
+      background: rgba(252, 191, 73, 0.18); color: #fcbf49; font-weight: 600; flex-shrink: 0;
+    }
+
+    /* Legend */
+    .legend-item {
+      display: flex; align-items: center; gap: 8px; font-size: 12px;
+      padding: 5px 7px; border-radius: 6px; cursor: pointer; color: var(--text);
+      border: 1px solid transparent;
+    }
+    .legend-item:hover { background: #1c2231; }
+    .legend-item.selected { background: rgba(76, 201, 240, 0.12); border-color: rgba(76, 201, 240, 0.45); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .legend-meta { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+    /* Sticky Ctrl+F Match Bar in Inspector */
+    .find-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 14px;
+      background: #1d2333;
+      border-bottom: 1px solid var(--hit-border);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .find-bar.active { display: flex; }
+    .find-bar-info { color: #fcbf49; font-weight: 600; }
+    .find-bar-actions { display: flex; gap: 5px; }
+    .find-bar button { padding: 4px 8px; font-size: 11px; }
+
+    /* Inspector content */
+    .badge {
+      display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px;
+      background: #232a3b; color: var(--accent); margin: 0 4px 4px 0;
+    }
+    .section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--muted); margin: 16px 0 8px; border-top: 1px solid var(--border); padding-top: 10px;
+      font-weight: 650;
+    }
+    .inspector h2 { margin: 4px 0 8px; font-size: 18px; line-height: 1.3; }
+    .inspector p, .inspector li { font-size: 13px; line-height: 1.55; color: #d5dceb; }
+    .inspector ul { padding-left: 18px; margin: 4px 0; }
+    .rule-good li::marker { color: var(--good); }
+    .rule-bad li::marker { color: var(--bad); }
+
+    /* KPI stat grid & term chips */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .kpi-val { font-size: 18px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+    .kpi-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .term-cloud { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .term-chip {
+      background: #1d2436;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      color: #dbe4f5;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .term-chip:hover { border-color: var(--accent); color: #fff; background: rgba(76, 201, 240, 0.14); }
+    .term-chip span { font-size: 10px; color: var(--muted); }
+
+    .topic-summary-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 11px;
+      margin-bottom: 10px;
+    }
+    .topic-summary-head {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      cursor: pointer; margin-bottom: 6px;
+    }
+    .topic-summary-head b { font-size: 13px; }
+    .topic-summary-head span { font-size: 11px; color: var(--muted); }
+
+    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 12px; }
+    .bar-label { width: 145px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cdd6e8; }
+    .bar-track { flex: 1; height: 8px; background: #0f131d; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; }
+    .bar-val { width: 28px; text-align: right; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    .tech-list-item {
+      padding: 7px 9px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      font-size: 12.5px;
+    }
+    .tech-list-item:hover { border-color: var(--accent); }
+    .tech-list-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .visual-card {
+      background: #0e121b; border: 1px solid var(--border); border-radius: 8px;
+      padding: 9px; margin-bottom: 10px;
+    }
+    .visual-card img {
+      width: 100%; border-radius: 5px; display: block; margin-bottom: 6px; cursor: zoom-in;
+    }
+    .visual-meta { font-size: 11px; color: var(--muted); margin-bottom: 5px; display: flex; justify-content: space-between; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    pre.diagram {
+      background: #090b10; border: 1px solid var(--border); border-radius: 6px;
+      padding: 8px; font-size: 11px; overflow-x: auto; color: #b8e0f7;
+    }
+
+    /* Ctrl+F highlights */
+    mark.search-hit {
+      background: var(--hit-bg);
+      color: #fff6dc;
+      border-bottom: 1.5px solid var(--hit-border);
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+    mark.search-hit.active-hit {
+      background: var(--hit-active-bg);
+      color: var(--hit-active-text);
+      font-weight: 700;
+      box-shadow: 0 0 0 2px rgba(252, 191, 73, 0.55);
+      animation: hitPulse 0.9s ease-out;
+    }
+    @keyframes hitPulse {
+      0% { box-shadow: 0 0 0 7px rgba(252, 191, 73, 0.65); }
+      100% { box-shadow: 0 0 0 2px rgba(252, 191, 73, 0.55); }
+    }
+
+    /* Lightbox */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 7, 12, 0.9);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      cursor: zoom-out;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 95vw; max-height: 92vh; border-radius: 8px; box-shadow: 0 16px 48px #000; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>Sakurai Game Design Knowledge Graph</h1>
+      <button id="btnOverview" title="Show global stats & per-topic top terms">Overview & Stats</button>
+    </div>
+    <div class="stats" id="stats">Loading knowledge/graph.json...</div>
+  </header>
+
+  <aside class="controls">
+    <div class="group">
+      <label for="search">Search (Ctrl+F auto-scroll in node)</label>
+      <div class="search-row">
+        <input id="search" type="text" placeholder="e.g. hitstop, lead-in, risk, menu..." />
+        <button id="btnClearSearch" title="Clear search">✕</button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <div class="group">
+      <label for="topicFilter">Major Topic</label>
+      <select id="topicFilter"><option value="">All Topics</option></select>
+    </div>
+
+    <div class="group">
+      <label for="layoutSelect">Graph Layout</label>
+      <select id="layoutSelect">
+        <option value="cose">Force Clustered (CoSE)</option>
+        <option value="radial_tree">Hierarchical Radial Tree</option>
+        <option value="topdown_tree">Hierarchical Top-Down Tree</option>
+        <option value="concentric">Concentric Rings (Multi-Tier)</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <label>View Controls</label>
+      <div class="btn-row">
+        <button id="btnIsolate" title="Re-layout only the selected Major Topic so nodes fill the screen">Isolate Topic: OFF</button>
+        <button id="btnVisualOnly">Visuals Only: OFF</button>
+        <button id="btnReset">Reset</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label>Major Topics (Techniques · Visuals)</label>
+      <div id="legend"></div>
+    </div>
+  </aside>
+
+  <div class="canvas-wrap">
+    <main id="cy"></main>
+    <div class="canvas-hint">Scroll: zoom · Drag: pan · Click: inspect · Double-click: zoom into cluster · / : search</div>
+    <div class="canvas-hud">
+      <button class="hud-btn" id="hudZoomOut" title="Zoom out (-)">−</button>
+      <span class="zoom-readout" id="zoomReadout">100%</span>
+      <button class="hud-btn" id="hudZoomIn" title="Zoom in (+)">+</button>
+      <button class="hud-btn" id="hudFit" title="Fit visible graph (0)">Fit</button>
+      <button class="hud-btn" id="hudFocus" title="Zoom to selected node & neighbors">Focus</button>
+    </div>
+  </div>
+
+  <aside class="inspector">
+    <div class="find-bar" id="findBar">
+      <span class="find-bar-info" id="findBarInfo">0 matches</span>
+      <div class="find-bar-actions">
+        <button id="btnPrevHit" title="Previous match (Shift+Enter)">▲ Prev</button>
+        <button id="btnNextHit" title="Next match (Enter)">▼ Next</button>
+      </div>
+    </div>
+    <div class="inspector-body" id="inspector"></div>
+  </aside>
+
+  <div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt="Visual preview" /></div>
+
+  <script>
+    let cy;
+    let graphData;
+    let topicStats = {};
+    let globalStats = {};
+    let visualOnly = false;
+    let isolateTopic = false;
+    let currentSelectedData = null;
+    let activeHits = [];
+    let activeHitIndex = -1;
+
+    const STOPWORDS = new Set([
+      'the','and','for','that','this','with','from','have','your','you','are','not','but','they',
+      'their','what','when','which','will','more','than','into','also','about','there','these',
+      'those','can','just','some','very','only','even','much','such','like','make','makes','made',
+      'making','game','games','gaming','player','players','play','playing','video','sakurai','one',
+      'two','three','first','second','often','many','most','other','each','every','them','then',
+      'here','where','while','how','why','who','because','should','would','could','need','needs',
+      'want','wants','good','better','best','well','really','thing','things','something','way','ways',
+      'using','used','use','uses','work','works','working','part','parts','different','same','kind',
+      'captured','sequential','frame','frames','contact','sheet','keyframe','context','visual',
+      'reference','episode','transcript','detailed','breakdown','without','between','through',
+      'around','being','might','still','might','does','doesn','don','isn','aren','was','were','has',
+      'had','been','its','our','out','over','under','after','before','during','since','both','all',
+      'any','few','own','too','very','now','get','got','getting','take','takes','taking','give',
+      'gives','giving','look','looking','see','seen','feel','feels','think','know','time','times',
+      'let','lets','keep','keeping','come','comes','going','may','might','must','sure','little',
+      'able','hard','easy','long','short','high','low','big','small','new','old','right','left'
+    ]);
+
+    // Extraction artifacts: heuristic visual tags, show/series names that dominate every topic.
+    const NOISE_TERMS = new Set([
+      'annotated', 'comparison', 'gameplay', 'smash', 'bros', 'grab', 'bag', 'kirby', 'red', 'say',
+      'people', 'i’m', 'ultimate', 'melee', 'brawl', 'super', 'nintendo', 'diagram', 'compare',
+      'highlight', 'example', 'examples', 'lot', 'yes', 'okay', 'actually', 'pretty',
+      'quite', 'probably', 'maybe', 'always', 'never', 'something', 'anything', 'everything'
+    ]);
+
+    function visualTermText(v) {
+      // Heuristic visuals only carry auto-generated cue tags; skip them for term stats.
+      if (v.analysis_mode !== 'gemini') return v.on_screen_text || '';
+      return `${v.visual_summary || ''} ${v.design_detail_highlighted || ''} ${v.on_screen_text || ''}`;
+    }
+
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    function escapeRegExp(s) {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function getSearchTokens(query) {
+      const q = (query || '').trim();
+      if (!q) return [];
+      const parts = q.split(/\s+/).filter(Boolean);
+      // Prefer full phrase first if multi-word, then individual words >= 2 chars
+      const tokens = [];
+      if (parts.length > 1) tokens.push(q);
+      for (const p of parts) {
+        if (p.length >= 2 || parts.length === 1) tokens.push(p);
+      }
+      return [...new Set(tokens)].sort((a, b) => b.length - a.length);
+    }
+
+    function buildHighlightRegex(query) {
+      const tokens = getSearchTokens(query);
+      if (!tokens.length) return null;
+      return new RegExp(`(${tokens.map(escapeRegExp).join('|')})`, 'gi');
+    }
+
+    function hi(text) {
+      const safe = esc(text);
+      const q = document.getElementById('search').value.trim();
+      if (!q) return safe;
+      const rx = buildHighlightRegex(q);
+      if (!rx) return safe;
+      return safe.replace(rx, '<mark class="search-hit">$1</mark>');
+    }
+
+    function nodeSearchableText(d) {
+      const pieces = [
+        d.label || '',
+        d.summary || '',
+        d.attention_to_detail || '',
+        ...(d.actionable_rules || []),
+        ...(d.anti_patterns || []),
+        ...(d.game_examples || []),
+        ...(d.subtopics || []),
+        ...(d.sakurai_categories || []),
+        ...(d.tradeoffs || []).flatMap(t => [t.tension || '', t.guidance || '']),
+        ...(d.citations || []).flatMap(c => [c.episode_code || '', c.episode_title || '', c.quote || '']),
+        ...(d.visuals || []).flatMap(v => [
+          v.code || '',
+          v.asset_type || '',
+          v.visual_summary || '',
+          v.design_detail_highlighted || '',
+          v.before_after_delta || '',
+          v.on_screen_text || '',
+          v.mermaid_or_ascii || '',
+        ]),
+      ];
+      return pieces.join(' ');
+    }
+
+    function countQueryMatches(text, query) {
+      const rx = buildHighlightRegex(query);
+      if (!rx) return 0;
+      const m = text.match(rx);
+      return m ? m.length : 0;
+    }
+
+    function extractTopTerms(texts, maxTerms = 12) {
+      const counts = new Map();
+      for (const raw of texts) {
+        const words = String(raw || '').toLowerCase().match(/[a-z][a-z0-9'-]{2,}/g) || [];
+        for (let w of words) {
+          w = w.replace(/^'+|'+$/g, '');
+          if (w.length < 3 || STOPWORDS.has(w) || w.includes("'") || NOISE_TERMS.has(w)) continue;
+          counts.set(w, (counts.get(w) || 0) + 1);
+        }
+      }
+      return [...counts.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, maxTerms);
+    }
+
+    function computeAnalytics() {
+      const techNodes = graphData.nodes.filter(n => n.node_type === 'technique');
+      const subNodes = graphData.nodes.filter(n => n.node_type === 'subtopic');
+
+      const byTopic = {};
+      for (const t of graphData.taxonomy) {
+        byTopic[t.id] = {
+          id: t.id,
+          name: t.name,
+          color: t.color,
+          techniques: [],
+          subtopics: new Set(),
+          episodes: new Set(),
+          visualCount: 0,
+          ruleCount: 0,
+          sakuraiCats: {},
+          gameExamples: {},
+          topTerms: [],
+        };
+      }
+
+      const globalCats = {};
+      const globalGames = {};
+      const globalTexts = [];
+
+      for (const s of subNodes) {
+        if (byTopic[s.major_topic]) byTopic[s.major_topic].subtopics.add(s.id);
+      }
+
+      for (const n of techNodes) {
+        const bucket = byTopic[n.major_topic];
+        globalTexts.push([
+          n.label, n.summary, n.attention_to_detail,
+          ...(n.actionable_rules || []), ...(n.anti_patterns || []),
+          ...(n.citations || []).map(c => c.quote || ''),
+          ...(n.visuals || []).map(visualTermText),
+        ].join(' '));
+
+        for (const c of (n.sakurai_categories || [])) {
+          globalCats[c] = (globalCats[c] || 0) + 1;
+          if (bucket) bucket.sakuraiCats[c] = (bucket.sakuraiCats[c] || 0) + 1;
+        }
+        for (const g of (n.game_examples || [])) {
+          globalGames[g] = (globalGames[g] || 0) + 1;
+          if (bucket) bucket.gameExamples[g] = (bucket.gameExamples[g] || 0) + 1;
+        }
+
+        if (!bucket) continue;
+        bucket.techniques.push(n);
+        bucket.visualCount += (n.visuals || []).length;
+        bucket.ruleCount += (n.actionable_rules || []).length;
+        for (const c of (n.citations || [])) {
+          if (c.episode_code) bucket.episodes.add(c.episode_code);
+        }
+      }
+
+      for (const bucket of Object.values(byTopic)) {
+        const texts = bucket.techniques.map(n =>
+          [
+            n.label, n.summary, n.attention_to_detail,
+            ...(n.actionable_rules || []),
+            ...(n.citations || []).map(c => c.quote || ''),
+            ...(n.visuals || []).map(visualTermText)
+          ].join(' ')
+        );
+        bucket.topTerms = extractTopTerms(texts, 12);
+      }
+
+      topicStats = byTopic;
+      globalStats = {
+        totalTechs: techNodes.length,
+        totalSubtopics: subNodes.length,
+        topTerms: extractTopTerms(globalTexts, 20),
+        sakuraiCats: Object.entries(globalCats).sort((a, b) => b[1] - a[1]),
+        topGames: Object.entries(globalGames).sort((a, b) => b[1] - a[1]).slice(0, 12),
+      };
+    }
+
+    // Custom radial tree: every Major Topic becomes its own sunburst cluster.
+    // Subtopics sit on an inner ring; techniques fan out in their parent subtopic's
+    // angular sector at a radius large enough to keep >= LEAF_ARC px between labels.
+    function computeRadialPositions(eles) {
+      const LEAF_ARC = 105;
+      const visibleIds = new Set(eles.nodes().map(n => n.id()));
+      const majors = eles.nodes('[node_type="major_topic"]');
+      const clusters = [];
+      const placed = new Set();
+
+      majors.forEach(major => {
+        const subs = major.connectedEdges('[edge_type="BELONGS_TO"]').sources()
+          .filter(n => n.data('node_type') === 'subtopic' && visibleIds.has(n.id()));
+        const groups = subs.map(sub => ({
+          sub,
+          techs: sub.connectedEdges('[edge_type="BELONGS_TO"]').sources()
+            .filter(n => n.data('node_type') === 'technique' && visibleIds.has(n.id()) && !placed.has(n.id()))
+            .map(n => { placed.add(n.id()); return n; }),
+        }));
+        // Techniques attached straight to the major topic (no subtopic)
+        const direct = major.connectedEdges('[edge_type="BELONGS_TO"]').sources()
+          .filter(n => n.data('node_type') === 'technique' && visibleIds.has(n.id()) && !placed.has(n.id()))
+          .map(n => { placed.add(n.id()); return n; });
+        if (direct.length) groups.push({ sub: null, techs: direct });
+
+        const leafTotal = Math.max(1, groups.reduce((a, g) => a + Math.max(1, g.techs.length), 0));
+        const rLeaf = Math.max(240, (leafTotal * LEAF_ARC) / (2 * Math.PI));
+        const rSub = Math.max(120, rLeaf * 0.42);
+        const local = new Map([[major.id(), { x: 0, y: 0 }]]);
+
+        let angle = -Math.PI / 2;
+        for (const g of groups) {
+          const share = (Math.max(1, g.techs.length) / leafTotal) * 2 * Math.PI;
+          const mid = angle + share / 2;
+          if (g.sub) local.set(g.sub.id(), { x: rSub * Math.cos(mid), y: rSub * Math.sin(mid) });
+          g.techs.forEach((t, i) => {
+            const a = angle + share * ((i + 0.5) / g.techs.length);
+            // Stagger alternate leaves outward so long labels never collide
+            const r = rLeaf + (i % 2 ? 70 : 0);
+            local.set(t.id(), { x: r * Math.cos(a), y: r * Math.sin(a) });
+          });
+          angle += share;
+        }
+        clusters.push({ local, radius: rLeaf + 170 });
+      });
+
+      // Shelf-pack clusters (largest first) into rows of roughly square aspect
+      clusters.sort((a, b) => b.radius - a.radius);
+      const totalArea = clusters.reduce((a, c) => a + (2 * c.radius) ** 2, 0);
+      const rowWidth = Math.max(clusters.length ? 2 * clusters[0].radius : 0, Math.sqrt(totalArea) * 1.35);
+      const positions = {};
+      let x = 0, y = 0, rowH = 0;
+      for (const c of clusters) {
+        const d = 2 * c.radius;
+        if (x > 0 && x + d > rowWidth) { x = 0; y += rowH; rowH = 0; }
+        const cx = x + c.radius, cy = y + c.radius;
+        c.local.forEach((p, id) => { positions[id] = { x: cx + p.x, y: cy + p.y }; });
+        x += d; rowH = Math.max(rowH, d);
+      }
+      // Any orphan nodes go in a tidy row underneath
+      let ox = 0;
+      eles.nodes().forEach(n => {
+        if (!positions[n.id()]) { positions[n.id()] = { x: ox, y: y + rowH + 200 }; ox += 160; }
+      });
+      return positions;
+    }
+
+    function getLayoutConfig(name, eles) {
+      if (name === 'radial_tree') {
+        const positions = computeRadialPositions(eles);
+        return {
+          name: 'preset',
+          positions: node => positions[node.id()],
+          padding: 40,
+          animate: true,
+          animationDuration: 320,
+        };
+      }
+      if (name === 'topdown_tree') {
+        return {
+          name: 'breadthfirst',
+          directed: false,
+          circle: false,
+          grid: true,
+          roots: eles.nodes('[node_type="major_topic"]'),
+          spacingFactor: 1.35,
+          avoidOverlap: true,
+          padding: 40,
+          animate: true,
+          animationDuration: 320,
+        };
+      }
+      if (name === 'concentric') {
+        return {
+          name: 'concentric',
+          concentric: node => {
+            const t = node.data('node_type');
+            if (t === 'major_topic') return 50;
+            if (t === 'subtopic') return 32;
+            const boost = Math.min(10, (node.data('citation_count') || 0) * 2 + Math.floor((node.data('visual_count') || 0) / 3));
+            return 10 + boost;
+          },
+          levelWidth: () => 5,
+          minNodeSpacing: 60,
+          equidistant: false,
+          avoidOverlap: true,
+          spacingFactor: 1.2,
+          padding: 40,
+          animate: true,
+          animationDuration: 320,
+        };
+      }
+      // Default: Force Clustered (CoSE)
+      return {
+        name: 'cose',
+        animate: false,
+        padding: 40,
+        nodeRepulsion: () => 18000,
+        idealEdgeLength: () => 95,
+        edgeElasticity: () => 110,
+        nodeOverlap: 26,
+        gravity: 0.28,
+        numIter: 800,
+      };
+    }
+
+    function runLayout(layoutName) {
+      const visible = cy.elements(':visible');
+      if (!visible.length) return;
+      const cfg = getLayoutConfig(layoutName, visible);
+      const layout = visible.layout(cfg);
+      layout.on('layoutstop', () => {
+        // Prevent hierarchical/concentric views from shrinking all nodes into microscopic dots!
+        cy.fit(visible, 36);
+        if (layoutName === 'topdown_tree' && cy.zoom() < 0.42 && visible.nodes().length > 80) {
+          const topTopics = visible.nodes('[node_type="major_topic"], [node_type="subtopic"]');
+          if (topTopics.length) {
+            cy.animate({ fit: { eles: topTopics, padding: 60 }, duration: 240 });
+          }
+        }
+        updateZoomReadout();
+      });
+      layout.run();
+    }
+
+    function updateZoomReadout() {
+      if (!cy) return;
+      document.getElementById('zoomReadout').textContent = `${Math.round(cy.zoom() * 100)}%`;
+    }
+
+    function zoomBy(factor) {
+      const target = Math.min(cy.maxZoom(), Math.max(cy.minZoom(), cy.zoom() * factor));
+      cy.animate({
+        zoom: {
+          level: target,
+          renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 }
+        },
+        duration: 180,
+      });
+    }
+
+    function focusNode(nodeId, openInspector = true) {
+      const node = cy.getElementById(nodeId);
+      if (!node || !node.length) return;
+      if (!node.visible()) {
+        // Turn off isolate if jumping to a node outside current isolated topic
+        isolateTopic = false;
+        document.getElementById('btnIsolate').textContent = 'Isolate Topic: OFF';
+        document.getElementById('btnIsolate').classList.remove('active');
+        cy.elements().show();
+      }
+      cy.nodes().unselect();
+      node.select();
+      const hood = node.closedNeighborhood(':visible');
+      cy.animate({
+        fit: { eles: hood.length <= 28 ? hood : node, padding: hood.length <= 28 ? 90 : 180 },
+        duration: 300,
+      });
+      // Ensure zoom is always comfortably readable when focusing a single node
+      setTimeout(() => {
+        if (cy.zoom() < 0.85) {
+          cy.animate({ zoom: { level: 1.05, position: node.position() }, center: { eles: node }, duration: 220 });
+        }
+        updateZoomReadout();
+      }, 310);
+      if (openInspector) renderInspector(node.data());
+    }
+
+    function triggerTermSearch(term) {
+      const input = document.getElementById('search');
+      input.value = term;
+      applyFilters();
+      input.focus();
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('search').value.trim();
+      const topic = document.getElementById('topicFilter').value;
+
+      // Sync legend highlight
+      document.querySelectorAll('.legend-item').forEach(el => {
+        el.classList.toggle('selected', el.dataset.topicId === topic);
+      });
+
+      // Handle Isolate Topic mode (actually hides other topics + re-layouts so nodes are HUGE)
+      cy.elements().show();
+      if (isolateTopic && topic) {
+        const keepTopic = cy.nodes().filter(n => n.data('major_topic') === topic);
+        const keepEles = keepTopic.union(keepTopic.edgesWith(keepTopic));
+        cy.elements().difference(keepEles).hide();
+        runLayout(document.getElementById('layoutSelect').value);
+      }
+
+      cy.elements().removeClass('dimmed search-match');
+
+      const searchMatches = [];
+      const matched = cy.nodes(':visible').filter(n => {
+        const d = n.data();
+        if (topic && d.major_topic !== topic) return false;
+        if (visualOnly && d.node_type === 'technique' && !(d.visual_count > 0)) return false;
+        if (q) {
+          const cnt = countQueryMatches(nodeSearchableText(d), q);
+          if (cnt > 0) {
+            searchMatches.push({ node: n, data: d, count: cnt });
+            return true;
+          }
+          return false;
+        }
+        return true;
+      });
+
+      if (q || topic || visualOnly) {
+        if (q) matched.addClass('search-match');
+        const keep = matched.union(matched.connectedEdges()).union(matched.neighborhood('node'));
+        cy.elements(':visible').difference(keep).addClass('dimmed');
+      }
+
+      // Render quick clickable search results list
+      const srBox = document.getElementById('searchResults');
+      if (q) {
+        searchMatches.sort((a, b) => {
+          // Prioritize techniques first, then higher match count
+          const tRank = x => (x.data.node_type === 'technique' ? 0 : 1);
+          return tRank(a) - tRank(b) || b.count - a.count;
+        });
+        srBox.classList.add('open');
+        srBox.innerHTML = `
+          <div class="sr-header">
+            <span><b>${searchMatches.length}</b> matching node(s)</span>
+            <span>Click to jump + Ctrl+F</span>
+          </div>
+          ${searchMatches.length ? searchMatches.slice(0, 80).map(m => `
+            <div class="sr-item" data-id="${esc(m.data.id)}">
+              <span class="dot" style="background:${esc(m.data.color || '#4cc9f0')}"></span>
+              <span class="sr-title" title="${esc(m.data.label)}">${esc(m.data.label)}</span>
+              <span class="sr-count">${m.count}</span>
+            </div>
+          `).join('') : '<div style="padding:10px;font-size:12px;color:var(--muted)">No matching nodes.</div>'}
+        `;
+        srBox.querySelectorAll('.sr-item').forEach(item => {
+          item.onclick = () => focusNode(item.dataset.id, true);
+        });
+      } else {
+        srBox.classList.remove('open');
+        srBox.innerHTML = '';
+      }
+
+      // Refresh current inspector highlights live if a node is open
+      if (currentSelectedData) {
+        renderInspector(currentSelectedData);
+      }
+
+      updateHeaderStats();
+    }
+
+    function updateHeaderStats() {
+      const m = graphData.metadata;
+      const visTechs = cy.nodes(':visible[node_type="technique"]').not('.dimmed').length;
+      document.getElementById('stats').innerHTML = `
+        <span>Episodes: <b>${m.episodes_processed}/${m.total_catalog_episodes}</b></span>
+        <span>Showing: <b>${visTechs}/${m.techniques_count}</b> techniques</span>
+        <span>Visuals: <b>${m.visual_assets_count}</b></span>
+        <span>Edges: <b>${m.edges_count}</b></span>
+      `;
+    }
+
+    function setupFindHighlights(autoScroll = true) {
+      const bar = document.getElementById('findBar');
+      const info = document.getElementById('findBarInfo');
+      const q = document.getElementById('search').value.trim();
+      const body = document.getElementById('inspector');
+
+      activeHits = Array.from(body.querySelectorAll('mark.search-hit'));
+      activeHitIndex = -1;
+
+      if (!q || !activeHits.length) {
+        bar.classList.remove('active');
+        if (q) {
+          bar.classList.add('active');
+          info.textContent = `0 occurrences of "${q}" in this node`;
+        }
+        return;
+      }
+
+      bar.classList.add('active');
+      if (autoScroll) {
+        jumpToHit(0);
+      } else {
+        info.textContent = `${activeHits.length} match${activeHits.length === 1 ? '' : 'es'} for "${q}"`;
+      }
+    }
+
+    function jumpToHit(index) {
+      if (!activeHits.length) return;
+      activeHits.forEach(el => el.classList.remove('active-hit'));
+      activeHitIndex = ((index % activeHits.length) + activeHits.length) % activeHits.length;
+      const el = activeHits[activeHitIndex];
+      el.classList.add('active-hit');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const q = document.getElementById('search').value.trim();
+      document.getElementById('findBarInfo').textContent =
+        `Match ${activeHitIndex + 1} of ${activeHits.length} for "${q}"`;
+    }
+
+    function renderOverview() {
+      currentSelectedData = null;
+      const box = document.getElementById('inspector');
+      const m = graphData.metadata;
+      const maxCat = globalStats.sakuraiCats.length ? globalStats.sakuraiCats[0][1] : 1;
+
+      const activeTopics = Object.values(topicStats)
+        .filter(t => t.techniques.length > 0)
+        .sort((a, b) => b.techniques.length - a.techniques.length);
+
+      box.innerHTML = `
+        <span class="badge">Corpus Overview</span>
+        <h2>Knowledge Graph Summary</h2>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-val">${m.episodes_processed}</div><div class="kpi-lbl">Episodes</div></div>
+          <div class="kpi-card"><div class="kpi-val">${m.techniques_count}</div><div class="kpi-lbl">Techniques</div></div>
+          <div class="kpi-card"><div class="kpi-val">${m.visual_assets_count}</div><div class="kpi-lbl">Visual Assets</div></div>
+          <div class="kpi-card"><div class="kpi-val">${activeTopics.length}</div><div class="kpi-lbl">Major Topics</div></div>
+          <div class="kpi-card"><div class="kpi-val">${globalStats.totalSubtopics}</div><div class="kpi-lbl">Subtopics</div></div>
+          <div class="kpi-card"><div class="kpi-val">${m.edges_count}</div><div class="kpi-lbl">Graph Edges</div></div>
+        </div>
+
+        <div class="section-title">Most Used Terms Across Corpus (Click to Search)</div>
+        <div class="term-cloud">
+          ${globalStats.topTerms.map(([w, c]) =>
+            `<span class="term-chip" data-term="${esc(w)}">${esc(w)} <span>${c}</span></span>`
+          ).join('')}
+        </div>
+
+        <div class="section-title">Major Topics — Counts & Top Terms</div>
+        ${activeTopics.map(t => `
+          <div class="topic-summary-card" style="border-left-color:${esc(t.color)}">
+            <div class="topic-summary-head" data-topic="${esc(t.id)}">
+              <b>${esc(t.name)}</b>
+              <span>${t.techniques.length} tech · ${t.subtopics.size} sub · ${t.visualCount} vis</span>
+            </div>
+            <div class="term-cloud">
+              ${t.topTerms.slice(0, 8).map(([w, c]) =>
+                `<span class="term-chip" data-term="${esc(w)}">${esc(w)} <span>${c}</span></span>`
+              ).join('')}
+            </div>
+          </div>
+        `).join('')}
+
+        <div class="section-title">Sakurai Playlist Distribution</div>
+        ${globalStats.sakuraiCats.slice(0, 16).map(([cat, cnt]) => `
+          <div class="bar-row">
+            <span class="bar-label" title="${esc(cat)}">${esc(cat)}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round((cnt / maxCat) * 100)}%;background:var(--accent)"></div></div>
+            <span class="bar-val">${cnt}</span>
+          </div>
+        `).join('')}
+
+        ${globalStats.topGames.length ? `
+          <div class="section-title">Most Cited Game Examples</div>
+          <div class="term-cloud">
+            ${globalStats.topGames.map(([g, c]) =>
+              `<span class="term-chip" data-term="${esc(g)}">${esc(g)} <span>${c}</span></span>`
+            ).join('')}
+          </div>
+        ` : ''}
+      `;
+
+      wireInspectorInteractiveHandlers(box);
+      setupFindHighlights(false);
+    }
+
+    function renderTopicInspector(d) {
+      const box = document.getElementById('inspector');
+      const isMajor = d.node_type === 'major_topic';
+      const bucket = topicStats[d.major_topic];
+      const techs = isMajor
+        ? (bucket ? bucket.techniques : [])
+        : (bucket ? bucket.techniques.filter(t => (t.subtopics || []).includes(d.id.replace(/^subtopic:/, ''))) : []);
+
+      const visTotal = techs.reduce((acc, t) => acc + (t.visuals || []).length, 0);
+      const ruleTotal = techs.reduce((acc, t) => acc + (t.actionable_rules || []).length, 0);
+      const epSet = new Set(techs.flatMap(t => (t.citations || []).map(c => c.episode_code).filter(Boolean)));
+      const terms = isMajor && bucket
+        ? bucket.topTerms
+        : extractTopTerms(techs.map(t => `${t.label} ${t.summary} ${(t.actionable_rules || []).join(' ')}`), 12);
+
+      const catCounts = {};
+      for (const t of techs) {
+        for (const c of (t.sakurai_categories || [])) catCounts[c] = (catCounts[c] || 0) + 1;
+      }
+      const catEntries = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
+      const maxCat = catEntries.length ? catEntries[0][1] : 1;
+
+      box.innerHTML = `
+        <span class="badge" style="border:1px solid ${esc(d.color)}">${esc(isMajor ? 'Major Topic' : 'Subtopic')}</span>
+        <h2>${hi(d.label)}</h2>
+        <div class="btn-row" style="margin-bottom:8px">
+          <button id="btnIsolateThis">Isolate & Zoom This Topic</button>
+          <button id="btnBackOverview">← All Topics Overview</button>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-val">${techs.length}</div><div class="kpi-lbl">Techniques</div></div>
+          <div class="kpi-card"><div class="kpi-val">${visTotal}</div><div class="kpi-lbl">Visual Refs</div></div>
+          <div class="kpi-card"><div class="kpi-val">${epSet.size}</div><div class="kpi-lbl">Episodes</div></div>
+          ${isMajor && bucket ? `<div class="kpi-card"><div class="kpi-val">${bucket.subtopics.size}</div><div class="kpi-lbl">Subtopics</div></div>` : ''}
+          <div class="kpi-card"><div class="kpi-val">${ruleTotal}</div><div class="kpi-lbl">Action Rules</div></div>
+        </div>
+
+        <div class="section-title">Most Used Terms in ${esc(d.label)} (Click to Search)</div>
+        <div class="term-cloud">
+          ${terms.map(([w, c]) =>
+            `<span class="term-chip" data-term="${esc(w)}">${hi(w)} <span>${c}</span></span>`
+          ).join('')}
+        </div>
+
+        ${catEntries.length ? `
+          <div class="section-title">Source Sakurai Playlists</div>
+          ${catEntries.map(([cat, cnt]) => `
+            <div class="bar-row">
+              <span class="bar-label" title="${esc(cat)}">${esc(cat)}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${Math.round((cnt / maxCat) * 100)}%;background:${esc(d.color)}"></div></div>
+              <span class="bar-val">${cnt}</span>
+            </div>
+          `).join('')}
+        ` : ''}
+
+        <div class="section-title">Techniques (${techs.length})</div>
+        ${techs.sort((a, b) => (b.visual_count || 0) - (a.visual_count || 0)).map(t => `
+          <div class="tech-list-item" data-tech-id="${esc(t.id)}">
+            <b>${hi(t.label)}</b>
+            <div class="tech-list-sub">${(t.sakurai_categories || []).join(', ')} · ${(t.visuals || []).length} visuals</div>
+          </div>
+        `).join('')}
+      `;
+
+      document.getElementById('btnBackOverview').onclick = renderOverview;
+      document.getElementById('btnIsolateThis').onclick = () => {
+        document.getElementById('topicFilter').value = d.major_topic;
+        isolateTopic = true;
+        const btn = document.getElementById('btnIsolate');
+        btn.textContent = 'Isolate Topic: ON';
+        btn.classList.add('active');
+        applyFilters();
+      };
+      wireInspectorInteractiveHandlers(box);
+      setupFindHighlights(true);
+    }
+
+    function renderInspector(d) {
+      currentSelectedData = d;
+      if (d.node_type !== 'technique') {
+        renderTopicInspector(d);
+        return;
+      }
+
+      const box = document.getElementById('inspector');
+      const cats = (d.sakurai_categories || []).map(c => `<span class="badge">${hi(c)}</span>`).join('');
+      const subs = (d.subtopics || []).map(s => `<span class="badge">${hi(s)}</span>`).join('');
+      const rules = (d.actionable_rules || []).map(r => `<li>${hi(r)}</li>`).join('');
+      const anti = (d.anti_patterns || []).map(a => `<li>${hi(a)}</li>`).join('');
+      const tradeoffs = (d.tradeoffs || []).map(t => `<li><b>${hi(t.tension)}:</b> ${hi(t.guidance)}</li>`).join('');
+      const cites = (d.citations || []).map(c => `
+        <li>
+          <b>${hi(c.episode_code)}</b>${c.episode_title ? ` — ${hi(c.episode_title)}` : ''} ·
+          <a href="${esc(c.url)}" target="_blank" rel="noopener">YouTube @ ${Math.round(c.timestamp_sec || 0)}s</a>
+          ${c.quote ? `<br/><i>"${hi(c.quote)}"</i>` : ''}
+        </li>
+      `).join('');
+
+      const visuals = (d.visuals || []).map(v => `
+        <div class="visual-card">
+          <div class="visual-meta">
+            <span>${hi(v.code)} · ${hi(v.asset_type)} (${esc(v.kind)})</span>
+            <a href="${esc(v.youtube_url)}" target="_blank" rel="noopener">Open Video ↗</a>
+          </div>
+          <img class="zoomable-img" src="../${esc(v.local_path)}" alt="${esc(v.asset_id)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+          <div style="display:none;font-size:11px;color:var(--muted);padding:6px 8px;margin-bottom:6px;border:1px dashed var(--border);border-radius:5px;">Local media file not included in repo — <a href="${esc(v.youtube_url)}" target="_blank" rel="noopener">watch exact moment on YouTube ↗</a></div>
+          <p>${hi(v.visual_summary)}</p>
+          ${v.design_detail_highlighted ? `<p><b>Craft detail:</b> ${hi(v.design_detail_highlighted)}</p>` : ''}
+          ${v.before_after_delta ? `<p><b>Comparison delta:</b> ${hi(v.before_after_delta)}</p>` : ''}
+          ${v.on_screen_text ? `<p><b>On-screen text:</b> ${hi(v.on_screen_text)}</p>` : ''}
+          ${v.mermaid_or_ascii ? `<pre class="diagram">${hi(v.mermaid_or_ascii)}</pre>` : ''}
+        </div>
+      `).join('');
+
+      box.innerHTML = `
+        <div>${cats}${subs}</div>
+        <h2>${hi(d.label)}</h2>
+        <p>${hi(d.summary)}</p>
+        ${rules ? `<div class="section-title">Actionable Rules (${d.actionable_rules.length})</div><ul class="rule-good">${rules}</ul>` : ''}
+        ${anti ? `<div class="section-title">Anti-Patterns (${d.anti_patterns.length})</div><ul class="rule-bad">${anti}</ul>` : ''}
+        ${tradeoffs ? `<div class="section-title">Tradeoffs</div><ul>${tradeoffs}</ul>` : ''}
+        ${d.attention_to_detail ? `<div class="section-title">Attention to Detail</div><p>${hi(d.attention_to_detail)}</p>` : ''}
+        ${(d.game_examples || []).length ? `<div class="section-title">Game Examples</div><p>${hi(d.game_examples.join(', '))}</p>` : ''}
+        ${visuals ? `<div class="section-title">Visual References (${d.visuals.length})</div>${visuals}` : ''}
+        ${cites ? `<div class="section-title">Citations (${d.citations.length})</div><ul>${cites}</ul>` : ''}
+      `;
+
+      wireInspectorInteractiveHandlers(box);
+      // Automatically scroll & highlight to first search match inside this node!
+      setupFindHighlights(true);
+    }
+
+    function wireInspectorInteractiveHandlers(box) {
+      box.querySelectorAll('.term-chip').forEach(chip => {
+        chip.onclick = () => triggerTermSearch(chip.dataset.term);
+      });
+      box.querySelectorAll('.topic-summary-head').forEach(head => {
+        head.onclick = () => focusNode(`topic:${head.dataset.topic}`, true);
+      });
+      box.querySelectorAll('.tech-list-item').forEach(item => {
+        item.onclick = () => focusNode(item.dataset.techId, true);
+      });
+      box.querySelectorAll('.zoomable-img').forEach(img => {
+        img.onclick = () => {
+          document.getElementById('lightboxImg').src = img.src;
+          document.getElementById('lightbox').classList.add('open');
+        };
+      });
+    }
+
+    async function init() {
+      const resp = await fetch('../knowledge/graph.json');
+      if (!resp.ok) {
+        document.getElementById('stats').textContent = 'Run scripts/07_build_graph.py first (knowledge/graph.json not found).';
+        return;
+      }
+      graphData = await resp.json();
+      computeAnalytics();
+
+      // Populate topic dropdown and rich legend with technique & visual counts
+      const topicSelect = document.getElementById('topicFilter');
+      const legend = document.getElementById('legend');
+      const activeTopics = Object.values(topicStats)
+        .filter(t => t.techniques.length > 0)
+        .sort((a, b) => b.techniques.length - a.techniques.length);
+
+      for (const t of activeTopics) {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = `${t.name} (${t.techniques.length})`;
+        topicSelect.appendChild(opt);
+
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.dataset.topicId = t.id;
+        item.innerHTML = `
+          <span class="dot" style="background:${esc(t.color)}"></span>
+          <span class="legend-name" title="${esc(t.name)}">${esc(t.name)}</span>
+          <span class="legend-meta">${t.techniques.length} · ${t.visualCount}v</span>
+        `;
+        item.onclick = () => {
+          const next = topicSelect.value === t.id ? '' : t.id;
+          topicSelect.value = next;
+          applyFilters();
+          if (next) focusNode(`topic:${next}`, true);
+          else renderOverview();
+        };
+        legend.appendChild(item);
+      }
+
+      const elements = [
+        ...graphData.nodes.map(n => ({ data: n })),
+        ...graphData.edges.map((e, i) => ({ data: { id: 'e' + i, ...e } })),
+      ];
+
+      cy = cytoscape({
+        container: document.getElementById('cy'),
+        elements,
+        wheelSensitivity: 0.25,
+        minZoom: 0.12,
+        maxZoom: 4.5,
+        style: [
+          {
+            selector: 'node',
+            style: {
+              'label': 'data(label)',
+              'color': '#e8edf7',
+              'font-size': '11px',
+              'text-valign': 'bottom',
+              'text-margin-y': '6px',
+              'text-wrap': 'wrap',
+              'text-max-width': '145px',
+              'text-background-color': '#0d1017',
+              'text-background-opacity': 0.82,
+              'text-background-padding': '3px',
+              'text-background-shape': 'roundrectangle',
+              'min-zoomed-font-size': 7,
+              'background-color': 'data(color)',
+              'border-width': 2,
+              'border-color': '#0d1017',
+            }
+          },
+          {
+            selector: 'node[node_type="major_topic"]',
+            style: {
+              'width': 64, 'height': 64, 'font-size': '14px', 'font-weight': 'bold',
+              'shape': 'round-rectangle', 'min-zoomed-font-size': 0, 'z-index': 30
+            }
+          },
+          {
+            selector: 'node[node_type="subtopic"]',
+            style: {
+              'width': 40, 'height': 40, 'font-size': '12px', 'shape': 'diamond',
+              'opacity': 0.95, 'min-zoomed-font-size': 5, 'z-index': 20
+            }
+          },
+          {
+            selector: 'node[node_type="technique"]',
+            style: {
+              'width': 'mapData(visual_count, 0, 14, 24, 40)',
+              'height': 'mapData(visual_count, 0, 14, 24, 40)',
+              'z-index': 10
+            }
+          },
+          {
+            selector: 'node.search-match',
+            style: { 'border-color': '#fcbf49', 'border-width': 4, 'z-index': 40 }
+          },
+          {
+            selector: 'node:selected',
+            style: { 'border-color': '#ffffff', 'border-width': 4.5, 'z-index': 50 }
+          },
+          {
+            selector: 'edge',
+            style: { 'width': 1.5, 'line-color': '#39435a', 'curve-style': 'bezier', 'opacity': 0.65 }
+          },
+          {
+            selector: 'edge[edge_type="SYNERGIZES_WITH"]',
+            style: { 'line-color': '#52b788', 'line-style': 'dashed', 'width': 2.2 }
+          },
+          {
+            selector: 'edge[edge_type="TRADEOFF_WITH"]',
+            style: { 'line-color': '#f77f00', 'line-style': 'dotted', 'width': 2.4 }
+          },
+          {
+            selector: 'edge[edge_type="BUILDS_ON"]',
+            style: { 'line-color': '#4cc9f0', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#4cc9f0', 'width': 2.2 }
+          },
+          {
+            selector: '.dimmed',
+            style: { 'opacity': 0.1 }
+          }
+        ],
+        layout: { name: 'preset' },
+      });
+
+      // Run initial tuned layout cleanly
+      runLayout('cose');
+      updateHeaderStats();
+      renderOverview();
+
+      // Node interactions
+      cy.on('tap', 'node', evt => {
+        renderInspector(evt.target.data());
+      });
+      cy.on('dbltap', 'node', evt => {
+        focusNode(evt.target.id(), true);
+      });
+      cy.on('zoom', updateZoomReadout);
+
+      // Controls wiring
+      document.getElementById('search').addEventListener('input', applyFilters);
+      document.getElementById('btnClearSearch').addEventListener('click', () => {
+        document.getElementById('search').value = '';
+        applyFilters();
+      });
+      topicSelect.addEventListener('change', () => {
+        applyFilters();
+        if (topicSelect.value) focusNode(`topic:${topicSelect.value}`, true);
+        else renderOverview();
+      });
+      document.getElementById('layoutSelect').addEventListener('change', e => {
+        runLayout(e.target.value);
+      });
+      document.getElementById('btnIsolate').addEventListener('click', e => {
+        if (!topicSelect.value && !isolateTopic) {
+          alert('Select a Major Topic first to isolate its subtree.');
+          return;
+        }
+        isolateTopic = !isolateTopic;
+        e.target.textContent = `Isolate Topic: ${isolateTopic ? 'ON' : 'OFF'}`;
+        e.target.classList.toggle('active', isolateTopic);
+        applyFilters();
+        if (!isolateTopic) runLayout(document.getElementById('layoutSelect').value);
+      });
+      document.getElementById('btnVisualOnly').addEventListener('click', e => {
+        visualOnly = !visualOnly;
+        e.target.textContent = `Visuals Only: ${visualOnly ? 'ON' : 'OFF'}`;
+        e.target.classList.toggle('active', visualOnly);
+        applyFilters();
+      });
+      document.getElementById('btnReset').addEventListener('click', () => {
+        document.getElementById('search').value = '';
+        topicSelect.value = '';
+        visualOnly = false;
+        isolateTopic = false;
+        document.getElementById('btnVisualOnly').textContent = 'Visuals Only: OFF';
+        document.getElementById('btnVisualOnly').classList.remove('active');
+        document.getElementById('btnIsolate').textContent = 'Isolate Topic: OFF';
+        document.getElementById('btnIsolate').classList.remove('active');
+        cy.elements().show().removeClass('dimmed search-match');
+        cy.nodes().unselect();
+        runLayout(document.getElementById('layoutSelect').value);
+        renderOverview();
+      });
+      document.getElementById('btnOverview').addEventListener('click', renderOverview);
+
+      // Canvas HUD buttons
+      document.getElementById('hudZoomIn').onclick = () => zoomBy(1.35);
+      document.getElementById('hudZoomOut').onclick = () => zoomBy(1 / 1.35);
+      document.getElementById('hudFit').onclick = () => cy.animate({ fit: { eles: cy.elements(':visible'), padding: 36 }, duration: 240 });
+      document.getElementById('hudFocus').onclick = () => {
+        const sel = cy.nodes(':selected');
+        if (sel.length) focusNode(sel[0].id(), false);
+      };
+
+      // Sticky Ctrl+F Match Bar buttons
+      document.getElementById('btnNextHit').onclick = () => jumpToHit(activeHitIndex + 1);
+      document.getElementById('btnPrevHit').onclick = () => jumpToHit(activeHitIndex - 1);
+
+      // Lightbox close
+      document.getElementById('lightbox').onclick = e => {
+        e.currentTarget.classList.remove('open');
+      };
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', e => {
+        const tag = (document.activeElement && document.activeElement.tagName) || '';
+        const inInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+        if (e.key === 'Escape') {
+          document.getElementById('lightbox').classList.remove('open');
+          if (inInput) document.activeElement.blur();
+          return;
+        }
+        if (e.key === '/' && !inInput) {
+          e.preventDefault();
+          document.getElementById('search').focus();
+          return;
+        }
+        if (activeHits.length && e.key === 'Enter' && !inInput) {
+          e.preventDefault();
+          jumpToHit(e.shiftKey ? activeHitIndex - 1 : activeHitIndex + 1);
+          return;
+        }
+        if (!inInput) {
+          if (e.key === '+' || e.key === '=') zoomBy(1.3);
+          else if (e.key === '-') zoomBy(1 / 1.3);
+          else if (e.key === '0') cy.animate({ fit: { eles: cy.elements(':visible'), padding: 36 }, duration: 240 });
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

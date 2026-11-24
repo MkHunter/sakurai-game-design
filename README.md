@@ -43,6 +43,38 @@ Sakurai (director of *Kirby* and *Super Smash Bros.*) published **261 short less
 
 ![All topics in the radial tree layout](docs/screenshots/radial-all-topics.png)
 
+## Agent skills
+
+The graph is distilled into **9 [Agent Skills](https://agentskills.io/specification)** in `skills/`.
+Agents load them on demand when working in a matching game development area:
+
+| Skill | Covers |
+| :--- | :--- |
+| `sakurai-game-design` | Router: cross-cutting principles, and which area skill to load |
+| `sakurai-game-essence` | Risk & reward, push & pull, rewards first, difficulty, retries, balance, uniqueness |
+| `sakurai-action-feel` | Hit stop (the 7 Smash techniques), button weight, jump physics, frames, camera, shake |
+| `sakurai-attack-animation` | Standby / lead-in / attack / follow-through, 4-value spec, poses, interpolation |
+| `sakurai-vfx-and-graphics` | Effects that pop, hit-mark criteria, particles, light, scale, readability |
+| `sakurai-audio-direction` | SFX priority hierarchy, impact sounds, tempo, themes, arrangements, mix checks |
+| `sakurai-ui-ux` | Skip/pause, help text, key config, HUDs, tutorials, first 3 minutes, player time |
+| `sakurai-planning-and-specs` | Concepts, proposals, `[bracketed]` parameters, tuning tables, case studies |
+| `sakurai-direction-and-teamwork` | Decisions, reviews, QA/playtesting, tooling, marketing & trailers |
+
+Each skill has a hand-written `SKILL.md` (principles with episode citations, a review procedure,
+and anti-patterns) and a generated `references/episodes.md` (official English quotes, YouTube
+links, technique rules, and links to the frame-by-frame contact sheets).
+
+**Install into [pi](https://pi.dev)** (the repo is a pi package):
+
+```bash
+pi install git:github.com/MkHunter/game-design-toolkit
+# then e.g. /skill:sakurai-attack-animation review the animation spec in docs/combat.md
+```
+
+Or copy or symlink individual folders from `skills/` into `~/.agents/skills/` for any agent that
+supports the Agent Skills spec. After re-running the pipeline, regenerate the evidence files with
+`uv run python scripts/build_skill_references.py`.
+
 ## Quick start (view only)
 
 The repo ships with the generated graph and referenced visuals, so viewing needs only Python.
@@ -116,7 +148,8 @@ knowledge/graph.json       Generated graph bundle (nodes, edges, taxonomy, visua
 knowledge/taxonomy.yaml    Controlled vocabulary: 11 major topics → 62 subtopics
 data/catalog/              Episode manifest (codes, titles, durations, URLs)
 data/media/<video_id>/     WebP keyframes/contact sheets (only graph-referenced files are tracked)
-scripts/                   Pipeline stages 00–08, query CLI, verifier, orchestrator
+skills/                    Agent skills (SKILL.md + generated references/episodes.md)
+scripts/                   Pipeline stages 00–08, query CLI, verifier, skill reference builder
 docs/screenshots/          README images
 PLAN.md                    Full design document and budget analysis
 ```

@@ -1,0 +1,15 @@
+{
+  "name": "sakurai-game-design-skills",
+  "version": "0.1.0",
+  "description": "Agent skills distilled from Masahiro Sakurai's 261 game design lessons: game essence, action feel, attack animation, VFX/graphics, audio, UI/UX, planning/specs, and direction.",
+  "private": true,
+  "license": "UNLICENSED",
+  "keywords": ["pi-package", "agent-skills", "game-design", "game-development", "masahiro-sakurai"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MkHunter/game-design-toolkit.git"
+  },
+  "pi": {
+    "skills": ["./skills"]
+  }
+}

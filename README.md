@@ -67,7 +67,7 @@ links, technique rules, and links to the frame-by-frame contact sheets).
 **Install into [pi](https://pi.dev)** (the repo is a pi package):
 
 ```bash
-pi install git:github.com/MkHunter/game-design-toolkit
+pi install git:github.com/MkHunter/sakurai-game-design
 # then e.g. /skill:sakurai-attack-animation review the animation spec in docs/combat.md
 ```
 
@@ -80,8 +80,8 @@ supports the Agent Skills spec. After re-running the pipeline, regenerate the ev
 The repo ships with the generated graph and referenced visuals, so viewing needs only Python.
 
 ```bash
-git clone https://github.com/MkHunter/game-design-toolkit.git
-cd game-design-toolkit
+git clone https://github.com/MkHunter/sakurai-game-design.git
+cd sakurai-game-design
 python3 -m http.server 8765
 # open http://localhost:8765/viewer/
 ```

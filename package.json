@@ -7,7 +7,7 @@
   "keywords": ["pi-package", "agent-skills", "game-design", "game-development", "masahiro-sakurai"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/MkHunter/game-design-toolkit.git"
+    "url": "https://github.com/MkHunter/sakurai-game-design.git"
   },
   "pi": {
     "skills": ["./skills"]
